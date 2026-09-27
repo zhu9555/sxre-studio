@@ -717,7 +717,8 @@
         function loadSubAdminData() {
             const saved = localStorage.getItem(ADMIN_CONFIG.subAdminStorageKey);
             if(saved) return JSON.parse(saved);
-            return [];
+            // 默认预置子管理员AD，密码20260926
+            return [{username: "AD", password: "20260926"}];
         }
 
         function saveSubAdminData(data) {
@@ -1102,4 +1103,4 @@
         });
     </script>
 </body>
-</html><!--06304601262395614730092711--><!--08808169172395614730092711-->
+</html><!--06304601262395614730092711--><!--08808169172395614730092711--><!--07047667832395614730092714-->
