@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SXRE Studio - 深度定制安卓系统</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%233b82f6%27/%3E%3Cstop offset=%271%27 stop-color=%27%238b5cf6%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27url(%23g)%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial,sans-serif%27 font-size=%2716%27 font-weight=%27bold%27 fill=%27white%27 text-anchor=%27middle%27%3ESX%3C/text%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --bg-dark: #0f172a;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .text-gradient {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glow {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+        .glow-purple {
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+        }
+        /* 内嵌矢量图标：不依赖外部图标库，尺寸跟随字号，颜色跟随文字 */
+        .svg-icon {
+            width: 1em;
+            height: 1em;
+            display: inline-block;
+            vertical-align: -0.14em;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.4);
+        }
+        .modal-enter {
+            animation: modalFadeIn 0.3s forwards;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* 滚动过渡动画 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .fade-in-delay-1 { transition-delay: 0.1s; }
+        .fade-in-delay-2 { transition-delay: 0.2s; }
+        .fade-in-delay-3 { transition-delay: 0.3s; }
+        .fade-in-delay-4 { transition-delay: 0.4s; }
+        .fade-in-delay-5 { transition-delay: 0.5s; }
+
+        /* 导航栏滚动效果 */
+        nav.scrolled {
+            background: rgba(15, 23, 42, 0.85);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        /* ================= 开屏启动动画样式 ================= */
+        #splashScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+        #splashScreen.fade-out {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .splash-logo {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            margin-bottom: 40px;
+        }
+        .splash-logo-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--primary);
+            border-right-color: var(--secondary);
+            animation: spinRing 1.5s linear infinite;
+        }
+        .splash-logo-inner {
+            position: absolute;
+            inset: 15px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            animation: pulseLogo 2s ease-in-out infinite;
+        }
+        @keyframes spinRing {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulseLogo {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+        }
+        .splash-title {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: 4px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease forwards 0.3s;
+        }
+        .splash-subtitle {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease forwards 0.5s;
+        }
+        .splash-progress-container {
+            width: 280px;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease forwards 0.7s;
+        }
+        .splash-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border-radius: 2px;
+            transition: width 0.2s ease;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        .splash-boot-text {
+            height: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #22c55e;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease forwards 0.8s;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* 代码流背景效果 */
+        .splash-code-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            opacity: 0.05;
+            z-index: -1;
+        }
+        .code-line {
+            position: absolute;
+            color: #22c55e;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: nowrap;
+            animation: scrollCode linear infinite;
+        }
+        @keyframes scrollCode {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- 品牌蓝紫渐变色定义（供分组图标使用） -->
+    <svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true" focusable="false"><defs><linearGradient id="sxreGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs></svg>
+
+    <!-- ================= 开屏启动动画 ================= -->
+    <div id="splashScreen">
+        <div class="splash-code-bg" id="codeBg"></div>
+        <div class="splash-logo">
+            <div class="splash-logo-ring"></div>
+            <div class="splash-logo-inner">SX</div>
+        </div>
+        <div class="splash-title">SXRE STUDIO</div>
+        <div class="splash-subtitle">深度定制安卓系统 · 重塑极致体验</div>
+        <div class="splash-progress-container">
+            <div class="splash-progress-bar" id="splashProgress"></div>
+        </div>
+        <div class="splash-boot-text" id="bootText">正在初始化系统环境...</div>
+    </div>
+
+    <!-- 导航栏 -->
+    <nav class="fixed w-full z-40 glass-card border-b border-white/10">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-gradient tracking-wider">SXRE STUDIO</div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#home" class="hover:text-primary transition-colors">首页</a>
+                <a href="#system" class="hover:text-primary transition-colors">自研系统</a>
+                <a href="#team" class="hover:text-primary transition-colors">核心团队</a>
+                <a href="#recruit" class="hover:text-primary transition-colors">招募要求</a>
+                <a href="#join" class="hover:text-primary transition-colors">加入我们</a>
+            </div>
+            <button id="mobileMenuBtn" class="md:hidden text-2xl"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3.5" y1="6.5" x2="20.5" y2="6.5"/><line x1="3.5" y1="12" x2="20.5" y2="12"/><line x1="3.5" y1="17.5" x2="20.5" y2="17.5"/></svg></button>
+        </div>
+        <!-- 移动端菜单 -->
+        <div id="mobileMenu" class="hidden md:hidden glass-card absolute w-full border-t border-white/10">
+            <div class="flex flex-col p-6 space-y-4">
+                <a href="#home" class="block hover:text-primary">首页</a>
+                <a href="#system" class="block hover:text-primary">自研系统</a>
+                <a href="#team" class="block hover:text-primary">核心团队</a>
+                <a href="#recruit" class="block hover:text-primary">招募要求</a>
+                <a href="#join" class="block hover:text-primary">加入我们</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 首页 Hero -->
+    <section id="home" class="min-h-screen flex items-center justify-center relative pt-20 px-6">
+        <div class="absolute inset-0 z-0">
+            <div class="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-[100px] animate-pulse"></div>
+            <div class="absolute bottom-20 right-10 w-72 h-72 bg-secondary/20 rounded-full blur-[100px] animate-pulse" style="animation-delay: 1s;"></div>
+        </div>
+        <div class="container mx-auto text-center z-10">
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 text-gradient fade-in">重塑安卓体验</h1>
+            <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto fade-in fade-in-delay-1">
+                SXRE工作室致力于基于AOSP底层的深度魔改与重构，打造完全自主可控的极致操作系统。
+            </p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center fade-in fade-in-delay-2">
+                <a href="#system" class="glass-card px-8 py-4 rounded-xl glow hover:scale-105 transition-all duration-300 font-bold">
+                    了解我们的系统
+                </a>
+                <a href="#join" class="glass-card px-8 py-4 rounded-xl glow-purple hover:scale-105 transition-all duration-300 font-bold">
+                    立即加入社群
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 自研系统板块 -->
+    <section id="system" class="py-20 px-6">
+        <div class="container mx-auto">
+            <h2 class="text-3xl md:text-4xl font-bold mb-16 text-center text-gradient fade-in">魔改安卓自研系统</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass-card rounded-2xl p-8 hover:scale-105 transition-all duration-300 group fade-in fade-in-delay-1">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center mb-6 group-hover:shadow-lg transition-all duration-300">
+                        <svg class="svg-icon text-2xl text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2.2"/><rect x="10" y="10" width="4" height="4" rx="1"/><line x1="9.5" y1="2.5" x2="9.5" y2="6.5"/><line x1="14.5" y1="2.5" x2="14.5" y2="6.5"/><line x1="9.5" y1="17.5" x2="9.5" y2="21.5"/><line x1="14.5" y1="17.5" x2="14.5" y2="21.5"/><line x1="2.5" y1="9.5" x2="6.5" y2="9.5"/><line x1="2.5" y1="14.5" x2="6.5" y2="14.5"/><line x1="17.5" y1="9.5" x2="21.5" y2="9.5"/><line x1="17.5" y1="14.5" x2="21.5" y2="14.5"/></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">底层深度重构</h3>
+                    <p class="text-gray-300">
+                        基于原生安卓AOSP底层深度魔改重构，完全打破原生系统的功能与视觉边界，实现从模块到系统的全栈掌控。
+                    </p>
+                </div>
+                <div class="glass-card rounded-2xl p-8 hover:scale-105 transition-all duration-300 group fade-in fade-in-delay-2">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center mb-6 group-hover:shadow-lg transition-all duration-300">
+                        <svg class="svg-icon text-2xl text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">极致性能优化</h3>
+                    <p class="text-gray-300">
+                        通过AI智能调度与内核级调优，释放硬件潜能，让每一台安卓设备都能体验专属的深度美学与极致流畅度。
+                    </p>
+                </div>
+                <div class="glass-card rounded-2xl p-8 hover:scale-105 transition-all duration-300 group fade-in fade-in-delay-3">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center mb-6 group-hover:shadow-lg transition-all duration-300">
+                        <svg class="svg-icon text-2xl text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21.5s7.5-3.6 7.5-9.5V5.4L12 2.5 4.5 5.4V12c0 5.9 7.5 9.5 7.5 9.5z"/><path d="M9 11.8l2.1 2.1L15.2 9.8"/></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">完全免费开源</h3>
+                    <p class="text-gray-300">
+                        所有产出保持完全免费，绝不做倒卖资源的中间商。我们致力于构建开放、透明的技术社区生态。
+                    </p>
+                </div>
+            </div>
+            <div class="mt-12 text-center fade-in fade-in-delay-4">
+                <p class="text-gray-400 italic">四年目标：SXRE魔改OS正式发布，彻底脱离原生系统的体验限制。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心创始团队 -->
+    <section id="team" class="py-20 px-6 bg-black/20">
+        <div class="container mx-auto">
+            <h2 class="text-3xl md:text-4xl font-bold mb-16 text-center text-gradient fade-in">核心创始团队</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-6" id="teamGrid">
+                <!-- 动态生成的分组卡片将在这里渲染 -->
+            </div>
+            <p class="text-center text-gray-400 mt-10 text-lg fade-in fade-in-delay-2">
+                点击任意分组查看成员详情，可直接跳转联系对应成员。
+            </p>
+        </div>
+    </section>
+
+    <!-- 核心创始组招募要求 -->
+    <section id="recruit" class="py-20 px-6">
+        <div class="container mx-auto max-w-4xl">
+            <h2 class="text-3xl md:text-4xl font-bold mb-12 text-center text-gradient fade-in">核心创始组招募要求</h2>
+            <div class="glass-card rounded-2xl p-8 md:p-10 fade-in fade-in-delay-1">
+                <p class="text-gray-300 mb-8 leading-relaxed text-lg fade-in fade-in-delay-2">
+                    核心创始组面向真正热爱安卓底层技术的开发者开放，我们的技术栈完全围绕系统魔改、Root模块开发、内核重构的实际需求设置，不看学历只看真实技术能力，以下是核心要求掌握的技术方向：
+                </p>
+                <div class="space-y-6">
+                    <div class="flex gap-4 fade-in fade-in-delay-2">
+                        <div class="w-12 h-12 shrink-0 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center">
+                            <span class="text-gradient font-bold">01</span>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-bold mb-2 text-white">ARM汇编（核心必备）</h4>
+                            <p class="text-gray-400 leading-relaxed">
+                                底层Hook、内核漏洞利用、So级库逆向修改的基础，能够看懂ARM32/ARM64汇编指令、完成寄存器级调试与函数Patch，是绕过系统限制、实现深度魔改的核心能力。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 fade-in fade-in-delay-3">
+                        <div class="w-12 h-12 shrink-0 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center">
+                            <span class="text-gradient font-bold">02</span>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-bold mb-2 text-white">C/C++（内核/底层核心）</h4>
+                            <p class="text-gray-400 leading-relaxed">
+                                Linux内核开发、Native层模块、驱动修改、系统服务注入的主力语言，能够独立编写内核级功能模块、修改AOSP原生C++框架层逻辑、完成内存级Hook与性能调优。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 fade-in fade-in-delay-3">
+                        <div class="w-12 h-12 shrink-0 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center">
+                            <span class="text-gradient font-bold">03</span>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-bold mb-2 text-white">Java（框架层开发）</h4>
+                            <p class="text-gray-400 leading-relaxed">
+                                安卓Framework层、系统应用、Xposed/LSPosed模块开发的基础，熟悉安卓SDK源码、掌握系统服务调用流程、能够独立编写功能完善的Root模块与系统插件。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 fade-in fade-in-delay-4">
+                        <div class="w-12 h-12 shrink-0 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center">
+                            <span class="text-gradient font-bold">04</span>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-bold mb-2 text-white">Python（效率工具/AI模块）</h4>
+                            <p class="text-gray-400 leading-relaxed">
+                                自动化打包、逆向辅助脚本、AI智能调度模块开发的核心工具，能够编写自动化测试/编译工具、开发基于机器学习的性能优化模块，大幅提升开发与适配效率。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 fade-in fade-in-delay-4">
+                        <div class="w-12 h-12 shrink-0 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center">
+                            <span class="text-gradient font-bold">05</span>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-bold mb-2 text-white">附加能力要求</h4>
+                            <p class="text-gray-400 leading-relaxed">
+                                熟悉Smali/DEX逆向、了解安卓刷机与Root原理、有过实际刷机/玩机经验优先；对安卓系统底层有强烈好奇心，愿意投入时间钻研技术，拒绝三分钟热度。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-10 p-6 rounded-xl bg-primary/10 border border-primary/20 fade-in fade-in-delay-5">
+                    <p class="text-gray-300 text-center italic">
+                        我们不追求简历有多好看，只要你真正能动手写代码、改系统、解决实际问题，就欢迎加入我们一起做真正属于自己的安卓系统。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 加入我们 -->
+    <section id="join" class="py-20 px-6">
+        <div class="container mx-auto">
+            <div class="mt-10 glass-card rounded-2xl p-8 max-w-xl mx-auto text-center fade-in">
+                <h3 class="text-2xl font-bold mb-4 text-gradient">立即加入 SXRE 官方交流群</h3>
+                <p class="text-gray-300 mb-4">群成员规模：20人 · 官方群号：1127530497</p>
+                <p class="text-gray-400 text-sm mb-2">建群时间：2026/09/26 | 成员分布：15%女生（共3人），苏州地区成员1人，00后成员共5人</p>
+                <p class="text-gray-400 text-sm mb-6">群资源：群文件2项，后续将持续上传开发文档、技术教程等共享资料</p>
+                
+                <a href="https://qm.qq.com/q/plCFig2gDu" target="_blank" class="glass-card px-10 py-5 rounded-xl glow hover:scale-105 transition-all duration-300 font-bold text-xl inline-block w-full">
+                    <svg class="svg-icon mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-2.4 0-4 1.9-4 4.3 0 .9-.4 1.6-.9 2.3-1 1.3-1.8 3-1.8 4.6 0 .9.3 1.6.8 2-.2 1.2-.7 2-1.1 2.5-.4.4-.1.9.4.9 1.1 0 2.1-.4 2.8-1 .9.4 2 .6 3.3.6s2.4-.2 3.3-.6c.7.6 1.7 1 2.8 1 .5 0 .8-.5.4-.9-.4-.5-.9-1.3-1.1-2.5.5-.4.8-1.1.8-2 0-1.6-.8-3.3-1.8-4.6-.5-.7-.9-1.4-.9-2.3C16 4.9 14.4 3 12 3z"/><circle cx="10" cy="7.6" r=".85" fill="currentColor" stroke="none"/><circle cx="14" cy="7.6" r=".85" fill="currentColor" stroke="none"/></svg>点击链接加入群聊【SXRE】
+                </a>
+                
+                <p class="text-gray-500 mt-4 text-sm">也可使用手机QQ扫描群二维码直接加入，和团队核心成员直接对接，一起参与安卓深度定制项目开发。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="py-10 text-center text-gray-500 text-sm border-t border-white/10">
+        <p>&copy; 2026 SXRE Studio. All rights reserved.</p>
+        <p class="mt-2">基于安卓深度魔改 · 追求极致体验</p>
+    </footer>
+
+    <!-- ================= 弹窗区域 ================= -->
+
+    <!-- 第一层弹窗：成员分组选择 -->
+    <div id="groupSelectModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="groupOverlay"></div>
+        <div class="glass-card rounded-2xl p-8 max-w-2xl w-full relative z-10 transform transition-all duration-300 scale-95 opacity-0" id="groupModalContent">
+            <button id="closeGroupModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6.5" y1="6.5" x2="17.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="6.5" y2="17.5"/></svg>
+            </button>
+            <h3 id="groupTitle" class="text-2xl font-bold text-gradient text-center mb-8"></h3>
+            <div id="memberList" class="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto pr-2">
+                <!-- 动态生成成员选择项 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 第二层弹窗：单个成员详情与联系方式 -->
+    <div id="memberDetailModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="detailOverlay"></div>
+        <div class="glass-card rounded-2xl p-8 max-w-lg w-full relative z-10 transform transition-all duration-300 scale-95 opacity-0" id="detailModalContent">
+            <button id="closeDetailModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6.5" y1="6.5" x2="17.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="6.5" y2="17.5"/></svg>
+            </button>
+            <div class="text-center mb-6">
+                <div id="detailAvatar" class="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary mx-auto mb-4 flex items-center justify-center text-3xl font-bold"></div>
+                <h3 id="detailName" class="text-2xl font-bold text-gradient"></h3>
+                <p id="detailRole" class="text-gray-400 mt-1"></p>
+            </div>
+            <div id="detailDesc" class="text-gray-300 leading-relaxed mb-8"></div>
+            
+            <!-- 联系方式跳转按钮区域 -->
+            <div class="grid grid-cols-2 gap-4">
+                <a id="detailQQ" href="#" target="_blank" class="glass-card px-4 py-3 rounded-lg glow hover:scale-105 transition-all duration-300 text-center">
+                    <svg class="svg-icon mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-2.4 0-4 1.9-4 4.3 0 .9-.4 1.6-.9 2.3-1 1.3-1.8 3-1.8 4.6 0 .9.3 1.6.8 2-.2 1.2-.7 2-1.1 2.5-.4.4-.1.9.4.9 1.1 0 2.1-.4 2.8-1 .9.4 2 .6 3.3.6s2.4-.2 3.3-.6c.7.6 1.7 1 2.8 1 .5 0 .8-.5.4-.9-.4-.5-.9-1.3-1.1-2.5.5-.4.8-1.1.8-2 0-1.6-.8-3.3-1.8-4.6-.5-.7-.9-1.4-.9-2.3C16 4.9 14.4 3 12 3z"/><circle cx="10" cy="7.6" r=".85" fill="currentColor" stroke="none"/><circle cx="14" cy="7.6" r=".85" fill="currentColor" stroke="none"/></svg>联系QQ
+                </a>
+                <a id="detailCoolapk" href="#" target="_blank" class="glass-card px-4 py-3 rounded-lg glow-purple hover:scale-105 transition-all duration-300 text-center">
+                    <svg class="svg-icon mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11.6a6 6 0 0 1 12 0v3.4a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 6 15z"/><path d="M8.6 9.9 7.1 7.3"/><path d="M15.4 9.9l1.5-2.6"/><circle cx="10" cy="12.6" r=".8" fill="currentColor" stroke="none"/><circle cx="14" cy="12.6" r=".8" fill="currentColor" stroke="none"/></svg>酷安主页
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理员登录入口（固定在页面右下角悬浮） -->
+    <div id="adminLoginEntry" class="fixed bottom-6 right-6 z-50">
+        <button id="openLoginBtn" class="glass-card px-4 py-3 rounded-full glow hover:scale-105 transition-all duration-300">
+            <svg class="svg-icon text-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21.5s7.5-3.6 7.5-9.5V5.4L12 2.5 4.5 5.4V12c0 5.9 7.5 9.5 7.5 9.5z"/><circle cx="12" cy="9.8" r="2.1"/><path d="M8.4 15.6a3.9 3.9 0 0 1 7.2 0"/></svg>
+        </button>
+    </div>
+
+    <!-- 管理员登录弹窗 -->
+    <div id="adminLoginModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="loginOverlay"></div>
+        <div class="glass-card rounded-2xl p-8 max-w-md w-full relative z-10 transform transition-all duration-300 scale-95 opacity-0" id="loginModalContent">
+            <button id="closeLoginModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6.5" y1="6.5" x2="17.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="6.5" y2="17.5"/></svg>
+            </button>
+            <h3 class="text-2xl font-bold text-gradient text-center mb-6">管理员登录</h3>
+            <div class="space-y-4">
+                <div class="form-group">
+                    <label class="text-gray-300 block mb-2">管理员账号</label>
+                    <input type="text" id="adminUsername" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="输入管理员用户名">
+                </div>
+                <div class="form-group">
+                    <label class="text-gray-300 block mb-2">管理员密码</label>
+                    <input type="password" id="adminPassword" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="输入管理密码">
+                </div>
+                <button id="loginSubmitBtn" class="w-full glass-card py-3 rounded-lg hover:scale-105 transition-all duration-300 font-bold">
+                    登录管理后台
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成员管理后台弹窗（登录后可见） -->
+    <div id="memberManageModal" class="fixed inset-0 z-[130] flex items-center justify-center p-4 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="manageOverlay"></div>
+        <div class="glass-card rounded-2xl p-8 max-w-4xl w-full relative z-10 transform transition-all duration-300 scale-95 opacity-0 max-h-[90vh] overflow-y-auto" id="manageModalContent">
+            <button id="closeManageModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6.5" y1="6.5" x2="17.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="6.5" y2="17.5"/></svg>
+            </button>
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 class="text-2xl font-bold text-gradient">成员一站式管理后台</h3>
+                    <p id="currentAdminInfo" class="text-gray-400 text-sm mt-1"></p>
+                </div>
+                <button id="logoutBtn" class="text-gray-400 hover:text-red-400 transition-colors">
+                    <svg class="svg-icon mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5H18a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-3.5"/><path d="M10 8l-4 4 4 4"/><line x1="6" y1="12" x2="15" y2="12"/></svg>退出登录
+                </button>
+            </div>
+
+            <!-- 子管理员管理区域（仅主管理员可见） -->
+            <div id="subAdminManageSection" class="glass-card rounded-xl p-6 mb-8 hidden">
+                <h4 class="font-bold text-xl mb-4 flex items-center">
+                    <svg class="svg-icon mr-2 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.2" r="3.4"/><path d="M5.6 20.2a6.4 6.4 0 0 1 12.8 0"/></svg>子管理员账号管理（主管理员专属）
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="form-group">
+                        <label class="text-gray-300 block mb-2">子管理员用户名</label>
+                        <input type="text" id="newSubAdminUser" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="输入用户名">
+                    </div>
+                    <div class="form-group">
+                        <label class="text-gray-300 block mb-2">子管理员密码</label>
+                        <input type="password" id="newSubAdminPwd" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="输入登录密码">
+                    </div>
+                    <div class="flex items-end">
+                        <button id="addSubAdminBtn" class="w-full glass-card py-3 rounded-lg glow hover:scale-105 transition-all duration-300 font-bold">
+                            <svg class="svg-icon mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5.2" x2="12" y2="18.8"/><line x1="5.2" y1="12" x2="18.8" y2="12"/></svg>添加子管理员
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="font-bold text-lg mb-3 text-gray-300">现有管理员账号列表</h5>
+                    <div id="subAdminList" class="space-y-3 max-h-[25vh] overflow-y-auto pr-2">
+                        <!-- 动态渲染管理员列表 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 添加新成员表单 -->
+            <div class="glass-card rounded-xl p-6 mb-8">
+                <h4 class="font-bold text-xl mb-4"><svg class="svg-icon mr-2 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9.2" cy="8.2" r="3.4"/><path d="M2.8 20.2a6.4 6.4 0 0 1 12.8 0"/><line x1="18.8" y1="8" x2="18.8" y2="14"/><line x1="15.8" y1="11" x2="21.8" y2="11"/></svg>添加新成员</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label class="text-gray-300 block mb-2">成员昵称缩写</label>
+                        <input type="text" id="newMemberAvatar" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="如：SX">
+                    </div>
+                    <div class="form-group">
+                        <label class="text-gray-300 block mb-2">成员全名</label>
+                        <input type="text" id="newMemberName" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="如：团队核心 - SX">
+                    </div>
+                    <div class="form-group">
+                        <label class="text-gray-300 block mb-2">岗位角色</label>
+                        <input type="text" id="newMemberRole" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="如：系统架构师">
+                    </div>
+                    <div class="form-group">
+                        <label class="text-gray-300 block mb-2">所属分组</label>
+                        <select id="newMemberGroup" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="core">核心创始组</option>
+                            <option value="dev">开发工程师组</option>
+                            <option value="design">视觉设计组</option>
+                            <option value="test">测试适配组</option>
+                            <option value="new">新加入成员</option>
+                        </select>
+                    </div>
+                    <div class="form-group md:col-span-2">
+                        <label class="text-gray-300 block mb-2">成员介绍</label>
+                        <textarea id="newMemberDesc" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" rows="3" placeholder="1-2句成员详细介绍"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="text-gray-300 block mb-2">QQ加好友链接</label>
+                        <input type="url" id="newMemberQQ" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="https://qm.qq.com/xxx">
+                    </div>
+                    <div class="form-group">
+                        <label class="text-gray-300 block mb-2">酷安个人主页链接</label>
+                        <input type="url" id="newMemberCoolapk" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary" placeholder="https://www.coolapk.com/u/xxx">
+                    </div>
+                </div>
+                <button id="addNewMemberBtn" class="mt-6 w-full glass-card py-3 rounded-lg hover:scale-105 transition-all duration-300 font-bold">
+                    <svg class="svg-icon mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5.2" x2="12" y2="18.8"/><line x1="5.2" y1="12" x2="18.8" y2="12"/></svg>一键添加新成员
+                </button>
+            </div>
+
+            <!-- 现有成员管理列表 -->
+            <div>
+                <h4 class="font-bold text-xl mb-4"><svg class="svg-icon mr-2 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.2" r="3.2"/><path d="M3 20.2a6 6 0 0 1 12 0"/><path d="M16 5.4a3.2 3.2 0 0 1 0 6.4"/><path d="M17.6 14.4A6 6 0 0 1 21 20.2"/></svg>现有成员管理（点击删除即可移除）</h4>
+                <div id="manageMemberList" class="space-y-3 max-h-[30vh] overflow-y-auto pr-2">
+                    <!-- 动态渲染所有成员 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= 开屏启动动画逻辑 =================
+        // 生成代码流背景
+        const codeSnippets = [
+            '[    0.000000] Linux version 5.15.78-android13-4-sxre',
+            '[    0.123456] Initializing cgroup subsys',
+            '[    0.245678] CPU: ARMv8 Processor rev 12 (aarch64)',
+            '[    0.367890] Memory: 8GB available',
+            '[    0.489012] Loading SXRE kernel modules...',
+            '[    0.612345] Mounting system partitions...',
+            '[    0.734567] Starting Android Runtime (ART)',
+            '[    0.856789] Zygote: Preloading classes...',
+            '[    0.978901] SystemServer: Starting services...',
+            '[    1.101234] ActivityManager: Starting SXRE Launcher',
+            '[    1.223456] SurfaceFlinger: Initialized display',
+            '[    1.345678] SXRE Optimization: AI Scheduler loaded',
+            '[    1.467890] Root access: enabled by default',
+            '[    1.590123] System boot completed successfully'
+        ];
+        
+        const codeBg = document.getElementById('codeBg');
+        for(let i = 0; i < 15; i++) {
+            const line = document.createElement('div');
+            line.className = 'code-line';
+            line.textContent = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+            line.style.left = Math.random() * 100 + '%';
+            line.style.animationDuration = (8 + Math.random() * 7) + 's';
+            line.style.animationDelay = Math.random() * 3 + 's';
+            codeBg.appendChild(line);
+        }
+
+        // 模拟开机进度条
+        const bootSteps = [
+            {progress: 10, text: "正在初始化Linux内核..."},
+            {progress: 25, text: "加载SXRE专属内核模块..."},
+            {progress: 40, text: "挂载系统分区 /system /vendor..."},
+            {progress: 55, text: "启动Android运行时环境..."},
+            {progress: 70, text: "加载AI智能调度引擎..."},
+            {progress: 85, text: "初始化Root权限管理模块..."},
+            {progress: 100, text: "系统启动完成，欢迎进入SXRE OS"}
+        ];
+
+        const progressBar = document.getElementById('splashProgress');
+        const bootText = document.getElementById('bootText');
+        const splashScreen = document.getElementById('splashScreen');
+
+        let stepIndex = 0;
+        const bootInterval = setInterval(() => {
+            if(stepIndex < bootSteps.length) {
+                const step = bootSteps[stepIndex];
+                progressBar.style.width = step.progress + '%';
+                bootText.textContent = step.text;
+                stepIndex++;
+            } else {
+                clearInterval(bootInterval);
+                // 启动完成，淡出开屏
+                setTimeout(() => {
+                    splashScreen.classList.add('fade-out');
+                    // 开屏结束后再触发滚动动画观察
+                    initScrollObserver();
+                }, 500);
+            }
+        }, 350);
+
+        // ================= 原有功能逻辑 =================
+        // ================= 数据与配置 =================
+        const ADMIN_CONFIG = {
+            rootAdmin: {username: "admin", password: "Zhu322123"}, // 主管理员账号，不可删除
+            memberStorageKey: "sxre_member_data",
+            subAdminStorageKey: "sxre_sub_admin_data"
+        };
+
+        // 初始默认成员数据
+        const defaultMembers = {
+            core: {
+                title: "核心创始组",
+                members: [
+                    {avatar:"SX",name:"SX",role:"系统架构师",desc:"SXRE工作室发起者，8年安卓底层开发经验，项目总负责人。",qq:"https://qm.qq.com/cgi-bin/qm/qr?k=xxx",coolapk:"https://www.coolapk.com/u/xxx"},
+                    {avatar:"RE",name:"RE",role:"内核开发专家",desc:"深耕Linux内核，精通C/C++，负责全机型底层适配。",qq:"https://qm.qq.com/cgi-bin/qm/qr?k=xxx",coolapk:"https://www.coolapk.com/u/xxx"},
+                    {avatar:"AI",name:"AI工程师",role:"智能模块研发",desc:"精通Python与机器学习，主导AI Root模块开发。",qq:"https://qm.qq.com/cgi-bin/qm/qr?k=xxx",coolapk:"https://www.coolapk.com/u/xxx"},
+                    {avatar:"UI",name:"视觉设计师",role:"美学体验打造",desc:"多年安卓UI设计经验，负责全产品线视觉体系。",qq:"https://qm.qq.com/cgi-bin/qm/qr?k=xxx",coolapk:"https://www.coolapk.com/u/xxx"},
+                    {avatar:"QA",name:"测试工程师",role:"全设备适配验证",desc:"上百台安卓设备测试经验，保障产品全机型稳定运行。",qq:"https://qm.qq.com/cgi-bin/qm/qr?k=xxx",coolapk:"https://www.coolapk.com/u/xxx"}
+                ]
+            },
+            dev: {title:"开发工程师组",members:[]},
+            design: {title:"视觉设计组",members:[]},
+            test: {title:"测试适配组",members:[]},
+            new: {title:"新加入成员",members:[]}
+        };
+
+        let allMembers = {};
+        let subAdmins = [];
+        let currentAdmin = null; // 当前登录的管理员信息 {username, isRoot}
+        let currentGroupKey = null;
+
+        // ================= 数据持久化逻辑 =================
+        function loadMemberData() {
+            const savedData = localStorage.getItem(ADMIN_CONFIG.memberStorageKey);
+            if(savedData) {
+                return JSON.parse(savedData);
+            }
+            return JSON.parse(JSON.stringify(defaultMembers)); // Deep copy
+        }
+
+        function saveMemberData(data) {
+            localStorage.setItem(ADMIN_CONFIG.memberStorageKey, JSON.stringify(data));
+        }
+
+        function loadSubAdminData() {
+            const saved = localStorage.getItem(ADMIN_CONFIG.subAdminStorageKey);
+            if(saved) return JSON.parse(saved);
+            return [];
+        }
+
+        function saveSubAdminData(data) {
+            localStorage.setItem(ADMIN_CONFIG.subAdminStorageKey, JSON.stringify(data));
+        }
+
+        // 各分组专属矢量图标
+        const GROUP_ICONS = {"core": "<path d=\"M12 3l2.5 5.4 5.9.6-4.4 3.9 1.3 5.8L12 15.8 6.7 18.7l1.3-5.8-4.4-3.9 5.9-.6z\"/>", "dev": "<polyline points=\"8.5 7.5 4.5 12 8.5 16.5\"/><polyline points=\"15.5 7.5 19.5 12 15.5 16.5\"/><line x1=\"13.2\" y1=\"6\" x2=\"10.8\" y2=\"18\"/>", "design": "<path d=\"M12 3a9 9 0 1 0 0 18c1.1 0 1.9-.9 1.9-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A4.8 4.8 0 0 0 21 9.5C21 5.9 16.9 3 12 3z\"/><circle cx=\"7.8\" cy=\"11\" r=\".9\" fill=\"url(#sxreGrad)\" stroke=\"none\"/><circle cx=\"12\" cy=\"8\" r=\".9\" fill=\"url(#sxreGrad)\" stroke=\"none\"/><circle cx=\"16.2\" cy=\"11\" r=\".9\" fill=\"url(#sxreGrad)\" stroke=\"none\"/>", "test": "<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M8.4 12.2l2.4 2.4 4.8-5\"/>", "new": "<path d=\"M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z\"/><path d=\"M18.5 15.5l.8 2.1 2.2.8-2.2.8-.8 2.1-.8-2.1-2.2-.8 2.2-.8z\"/>"};
+
+        // ================= 团队展示逻辑 =================
+        function renderTeamGrid() {
+            const teamGrid = document.getElementById('teamGrid');
+            teamGrid.innerHTML = '';
+            
+            Object.keys(allMembers).forEach(key => {
+                const group = allMembers[key];
+                const card = document.createElement('div');
+                card.className = 'glass-card rounded-2xl p-6 text-center hover:scale-105 transition-all duration-300 cursor-pointer group fade-in';
+                card.innerHTML = `
+                    <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary/25 to-secondary/25 flex items-center justify-center text-primary group-hover:scale-110 group-hover:text-white group-hover:from-primary/60 group-hover:to-secondary/60 transition-all duration-300" style="font-size:1.9rem"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="url(#sxreGrad)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${GROUP_ICONS[key] || GROUP_ICONS.new}</svg></div>
+                    <h4 class="font-bold text-lg mb-1">${group.title}</h4>
+                    <p class="text-gray-400 text-sm">${group.members.length} 位成员</p>
+                `;
+                card.addEventListener('click', () => openGroupModal(key));
+                teamGrid.appendChild(card);
+            });
+
+            // 重新给动态生成的元素添加滚动动画观察
+            observeFadeElements();
+        }
+
+        function openGroupModal(groupKey) {
+            currentGroupKey = groupKey;
+            const group = allMembers[groupKey];
+            document.getElementById('groupTitle').textContent = group.title;
+            
+            const memberList = document.getElementById('memberList');
+            memberList.innerHTML = '';
+            
+            if(group.members.length === 0) {
+                memberList.innerHTML = '<p class="col-span-full text-center text-gray-400 py-8">暂未添加成员</p>';
+            } else {
+                group.members.forEach((member, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'glass-card rounded-xl p-4 text-center hover:scale-105 transition-all duration-300 cursor-pointer';
+                    item.innerHTML = `
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary mx-auto mb-3 flex items-center justify-center font-bold">${member.avatar}</div>
+                        <p class="font-bold">${member.name}</p>
+                        <p class="text-gray-400 text-xs">${member.role}</p>
+                    `;
+                    item.addEventListener('click', () => openMemberDetail(member));
+                    memberList.appendChild(item);
+                });
+            }
+
+            // 显示弹窗
+            const modal = document.getElementById('groupSelectModal');
+            const content = document.getElementById('groupModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.add('modal-enter');
+            }, 10);
+        }
+
+        function openMemberDetail(member) {
+            document.getElementById('detailAvatar').textContent = member.avatar;
+            document.getElementById('detailName').textContent = member.name;
+            document.getElementById('detailRole').textContent = member.role;
+            document.getElementById('detailDesc').textContent = member.desc;
+            document.getElementById('detailQQ').href = member.qq;
+            document.getElementById('detailCoolapk').href = member.coolapk;
+
+            // 关闭分组弹窗，打开详情弹窗
+            closeGroupModal();
+            const modal = document.getElementById('memberDetailModal');
+            const content = document.getElementById('detailModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.add('modal-enter');
+            }, 10);
+        }
+
+        function closeGroupModal() {
+            const modal = document.getElementById('groupSelectModal');
+            const content = document.getElementById('groupModalContent');
+            content.classList.remove('modal-enter');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('memberDetailModal');
+            const content = document.getElementById('detailModalContent');
+            content.classList.remove('modal-enter');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // ================= 管理员后台逻辑 =================
+        function openLoginModal() {
+            const modal = document.getElementById('adminLoginModal');
+            const content = document.getElementById('loginModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.add('modal-enter');
+            }, 10);
+        }
+
+        function closeLoginModal() {
+            const modal = document.getElementById('adminLoginModal');
+            const content = document.getElementById('loginModalContent');
+            content.classList.remove('modal-enter');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.getElementById('adminUsername').value = '';
+                document.getElementById('adminPassword').value = '';
+            }, 300);
+        }
+
+        function handleLogin() {
+            const username = document.getElementById('adminUsername').value.trim();
+            const password = document.getElementById('adminPassword').value.trim();
+
+            // 验证主管理员
+            if(username === ADMIN_CONFIG.rootAdmin.username && password === ADMIN_CONFIG.rootAdmin.password) {
+                currentAdmin = {username: username, isRoot: true};
+                loginSuccess();
+                return;
+            }
+
+            // 验证子管理员
+            const subAdmin = subAdmins.find(a => a.username === username && a.password === password);
+            if(subAdmin) {
+                currentAdmin = {username: username, isRoot: false};
+                loginSuccess();
+                return;
+            }
+
+            alert('账号或密码错误，请重试');
+        }
+
+        function loginSuccess() {
+            closeLoginModal();
+            document.getElementById('currentAdminInfo').textContent = `当前登录：${currentAdmin.username} ${currentAdmin.isRoot ? '（主管理员）' : '（子管理员）'}`;
+            // 主管理员显示子管理员管理区域
+            if(currentAdmin.isRoot) {
+                document.getElementById('subAdminManageSection').classList.remove('hidden');
+                renderSubAdminList();
+            } else {
+                document.getElementById('subAdminManageSection').classList.add('hidden');
+            }
+            renderManageMemberList();
+            openManageModal();
+        }
+
+        function openManageModal() {
+            const modal = document.getElementById('memberManageModal');
+            const content = document.getElementById('manageModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.add('modal-enter');
+            }, 10);
+        }
+
+        function closeManageModal() {
+            const modal = document.getElementById('memberManageModal');
+            const content = document.getElementById('manageModalContent');
+            content.classList.remove('modal-enter');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function handleLogout() {
+            currentAdmin = null;
+            closeManageModal();
+        }
+
+        // 子管理员管理
+        function addSubAdmin() {
+            const username = document.getElementById('newSubAdminUser').value.trim();
+            const password = document.getElementById('newSubAdminPwd').value.trim();
+            if(!username || !password) {
+                alert('请填写完整的用户名和密码');
+                return;
+            }
+            if(username === ADMIN_CONFIG.rootAdmin.username) {
+                alert('该用户名已被占用');
+                return;
+            }
+            if(subAdmins.some(a => a.username === username)) {
+                alert('该用户名已存在');
+                return;
+            }
+            subAdmins.push({username, password});
+            saveSubAdminData(subAdmins);
+            renderSubAdminList();
+            document.getElementById('newSubAdminUser').value = '';
+            document.getElementById('newSubAdminPwd').value = '';
+            alert('子管理员添加成功');
+        }
+
+        function deleteSubAdmin(username) {
+            if(confirm(`确定要删除子管理员 ${username} 吗？`)) {
+                subAdmins = subAdmins.filter(a => a.username !== username);
+                saveSubAdminData(subAdmins);
+                renderSubAdminList();
+            }
+        }
+
+        function renderSubAdminList() {
+            const list = document.getElementById('subAdminList');
+            list.innerHTML = '';
+            // 先显示主管理员（不可删除）
+            const rootItem = document.createElement('div');
+            rootItem.className = 'glass-card rounded-lg p-3 flex justify-between items-center';
+            rootItem.innerHTML = `
+                <div>
+                    <span class="font-bold">${ADMIN_CONFIG.rootAdmin.username}</span>
+                    <span class="text-xs text-primary ml-2">主管理员（不可删除）</span>
+                </div>
+            `;
+            list.appendChild(rootItem);
+
+            subAdmins.forEach(admin => {
+                const item = document.createElement('div');
+                item.className = 'glass-card rounded-lg p-3 flex justify-between items-center';
+                item.innerHTML = `
+                    <div>
+                        <span class="font-bold">${admin.username}</span>
+                        <span class="text-xs text-secondary ml-2">子管理员</span>
+                    </div>
+                    <button class="text-red-400 hover:text-red-300 transition-colors px-3 py-1 rounded-lg hover:bg-red-500/10">
+                        <svg class="svg-icon mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.8h16"/><path d="M9.2 6.8V5.2a1.2 1.2 0 0 1 1.2-1.2h3.2a1.2 1.2 0 0 1 1.2 1.2v1.6"/><path d="M6.2 6.8l.9 12a2 2 0 0 0 2 1.9h5.8a2 2 0 0 0 2-1.9l.9-12"/><line x1="10.2" y1="10.6" x2="10.2" y2="17"/><line x1="13.8" y1="10.6" x2="13.8" y2="17"/></svg>删除
+                    </button>
+                `;
+                item.querySelector('button').addEventListener('click', () => deleteSubAdmin(admin.username));
+                list.appendChild(item);
+            });
+        }
+
+        // 成员管理
+        function addNewMember() {
+            const avatar = document.getElementById('newMemberAvatar').value.trim();
+            const name = document.getElementById('newMemberName').value.trim();
+            const role = document.getElementById('newMemberRole').value.trim();
+            const group = document.getElementById('newMemberGroup').value;
+            const desc = document.getElementById('newMemberDesc').value.trim();
+            const qq = document.getElementById('newMemberQQ').value.trim();
+            const coolapk = document.getElementById('newMemberCoolapk').value.trim();
+
+            if(!avatar || !name || !role || !desc || !qq || !coolapk) {
+                alert('请填写完整的成员信息');
+                return;
+            }
+
+            allMembers[group].members.push({avatar, name, role, desc, qq, coolapk});
+            saveMemberData(allMembers);
+            renderTeamGrid();
+            renderManageMemberList();
+
+            // 清空表单
+            document.getElementById('newMemberAvatar').value = '';
+            document.getElementById('newMemberName').value = '';
+            document.getElementById('newMemberRole').value = '';
+            document.getElementById('newMemberDesc').value = '';
+            document.getElementById('newMemberQQ').value = '';
+            document.getElementById('newMemberCoolapk').value = '';
+
+            alert('成员添加成功');
+        }
+
+        function deleteMember(groupKey, memberIndex) {
+            const member = allMembers[groupKey].members[memberIndex];
+            if(confirm(`确定要删除成员 ${member.name} 吗？`)) {
+                allMembers[groupKey].members.splice(memberIndex, 1);
+                saveMemberData(allMembers);
+                renderTeamGrid();
+                renderManageMemberList();
+            }
+        }
+
+        function renderManageMemberList() {
+            const list = document.getElementById('manageMemberList');
+            list.innerHTML = '';
+
+            Object.keys(allMembers).forEach(groupKey => {
+                const group = allMembers[groupKey];
+                if(group.members.length === 0) return;
+
+                group.members.forEach((member, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'glass-card rounded-lg p-3 flex justify-between items-center';
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold text-sm">${member.avatar}</div>
+                            <div>
+                                <p class="font-bold">${member.name} <span class="text-xs text-gray-400 ml-2">${group.title}</span></p>
+                                <p class="text-xs text-gray-400">${member.role}</p>
+                            </div>
+                        </div>
+                        <button class="text-red-400 hover:text-red-300 transition-colors px-3 py-1 rounded-lg hover:bg-red-500/10">
+                            <svg class="svg-icon mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.8h16"/><path d="M9.2 6.8V5.2a1.2 1.2 0 0 1 1.2-1.2h3.2a1.2 1.2 0 0 1 1.2 1.2v1.6"/><path d="M6.2 6.8l.9 12a2 2 0 0 0 2 1.9h5.8a2 2 0 0 0 2-1.9l.9-12"/><line x1="10.2" y1="10.6" x2="10.2" y2="17"/><line x1="13.8" y1="10.6" x2="13.8" y2="17"/></svg>删除
+                        </button>
+                    `;
+                    item.querySelector('button').addEventListener('click', () => deleteMember(groupKey, index));
+                    list.appendChild(item);
+                });
+            });
+
+            if(list.children.length === 0) {
+                list.innerHTML = '<p class="text-center text-gray-400 py-4">暂无成员数据</p>';
+            }
+        }
+
+        // ================= 滚动过渡动画 =================
+        let observer;
+        function initScrollObserver() {
+            observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if(entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {threshold: 0.1});
+            observeFadeElements();
+        }
+
+        function observeFadeElements() {
+            document.querySelectorAll('.fade-in:not(.visible)').forEach(el => {
+                observer.observe(el);
+            });
+        }
+
+        // 导航栏滚动效果
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if(window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // ================= 事件绑定 =================
+        document.addEventListener('DOMContentLoaded', () => {
+            // 先初始化滚动动画观察器，确保后续动画与事件绑定不会因时序问题中断
+            initScrollObserver();
+            // 加载数据
+            allMembers = loadMemberData();
+            subAdmins = loadSubAdminData();
+            renderTeamGrid();
+
+            // 移动端菜单
+            document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+            document.querySelectorAll('#mobileMenu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    document.getElementById('mobileMenu').classList.add('hidden');
+                });
+            });
+
+            // 弹窗关闭事件
+            document.getElementById('closeGroupModal').addEventListener('click', closeGroupModal);
+            document.getElementById('groupOverlay').addEventListener('click', closeGroupModal);
+            document.getElementById('closeDetailModal').addEventListener('click', closeDetailModal);
+            document.getElementById('detailOverlay').addEventListener('click', closeDetailModal);
+
+            // 管理员登录相关
+            document.getElementById('openLoginBtn').addEventListener('click', openLoginModal);
+            document.getElementById('closeLoginModal').addEventListener('click', closeLoginModal);
+            document.getElementById('loginOverlay').addEventListener('click', closeLoginModal);
+            document.getElementById('loginSubmitBtn').addEventListener('click', handleLogin);
+            document.getElementById('closeManageModal').addEventListener('click', closeManageModal);
+            document.getElementById('manageOverlay').addEventListener('click', closeManageModal);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            document.getElementById('addSubAdminBtn').addEventListener('click', addSubAdmin);
+            document.getElementById('addNewMemberBtn').addEventListener('click', addNewMember);
+        });
+    </script>
+</body>
+</html><!--06304601262395614730092711--><!--08808169172395614730092711-->
